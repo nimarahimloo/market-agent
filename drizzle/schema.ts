@@ -1,0 +1,233 @@
+import { boolean, decimal, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+
+/**
+ * Core user table backing auth flow.
+ * Extend this file with additional tables as your product grows.
+ * Columns use camelCase to match both database fields and generated types.
+ */
+export const users = mysqlTable("users", {
+  /**
+   * Surrogate primary key. Auto-incremented numeric value managed by the database.
+   * Use this for relations between tables.
+   */
+  id: int("id").autoincrement().primaryKey(),
+  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
+  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  name: text("name"),
+  email: varchar("email", { length: 320 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+export const instruments = mysqlTable("instruments", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  symbol: varchar("symbol", { length: 32 }).notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  assetClass: varchar("assetClass", { length: 32 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const agentRuns = mysqlTable("agentRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  mode: mysqlEnum("mode", ["single", "batch"]).notNull(),
+  status: mysqlEnum("status", ["queued", "running", "completed", "partial", "failed", "cancelled"]).default("queued").notNull(),
+  requestedCount: int("requestedCount").notNull(),
+  completedCount: int("completedCount").default(0).notNull(),
+  failedCount: int("failedCount").default(0).notNull(),
+  maxCalls: int("maxCalls").notNull(),
+  budgetUnits: int("budgetUnits").notNull(),
+  startedAt: timestamp("startedAt"),
+  finishedAt: timestamp("finishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const agentRunEvents = mysqlTable("agentRunEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  runId: int("runId").notNull(),
+  eventId: varchar("eventId", { length: 160 }).notNull(),
+  status: mysqlEnum("status", ["queued", "running", "completed", "failed", "cancelled"]).default("queued").notNull(),
+  consensus: json("consensus"),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const agentOutputs = mysqlTable("agentOutputs", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  runId: int("runId"),
+  eventId: varchar("eventId", { length: 160 }),
+  role: varchar("role", { length: 64 }).notNull(),
+  instrumentId: int("instrumentId"),
+  stance: varchar("stance", { length: 32 }).notNull(),
+  confidence: int("confidence").notNull(),
+  rationale: text("rationale").notNull(),
+  evidenceRefs: json("evidenceRefs"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const signals = mysqlTable("signals", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  instrumentId: int("instrumentId").notNull(),
+  direction: varchar("direction", { length: 32 }).notNull(),
+  confidence: int("confidence").notNull(),
+  rationale: text("rationale").notNull(),
+  invalidationLevel: decimal("invalidationLevel", { precision: 20, scale: 8 }),
+  riskReward: decimal("riskReward", { precision: 8, scale: 3 }),
+  status: mysqlEnum("status", ["research", "paper_approved", "archived"]).default("research").notNull(),
+  reasoningRefs: json("reasoningRefs"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const intelligenceItems = mysqlTable("intelligenceItems", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  sourceName: varchar("sourceName", { length: 128 }).notNull(),
+  sourceUrl: text("sourceUrl").notNull(),
+  headline: text("headline").notNull(),
+  entities: json("entities"),
+  affectedMarkets: json("affectedMarkets"),
+  sentiment: decimal("sentiment", { precision: 5, scale: 3 }),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const riskControls = mysqlTable("riskControls", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  positionSizeLimit: decimal("positionSizeLimit", { precision: 8, scale: 4 }).default("0.5000").notNull(),
+  dailyLossLimit: decimal("dailyLossLimit", { precision: 8, scale: 4 }).default("2.0000").notNull(),
+  exposureCap: decimal("exposureCap", { precision: 8, scale: 4 }).default("10.0000").notNull(),
+  killSwitchArmed: boolean("killSwitchArmed").default(true).notNull(),
+  liveTradingEnabled: boolean("liveTradingEnabled").default(false).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const simulations = mysqlTable("simulations", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  universe: json("universe"),
+  lookbackSessions: int("lookbackSessions").notNull(),
+  status: mysqlEnum("status", ["queued", "running", "completed", "failed"]).default("queued").notNull(),
+  returnPct: decimal("returnPct", { precision: 10, scale: 4 }),
+  maxDrawdownPct: decimal("maxDrawdownPct", { precision: 10, scale: 4 }),
+  winRatePct: decimal("winRatePct", { precision: 10, scale: 4 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const integrations = mysqlTable("integrations", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  credentialRef: text("credentialRef"),
+  isConnected: boolean("isConnected").default(false).notNull(),
+  isReadOnly: boolean("isReadOnly").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const walletConnections = mysqlTable("walletConnections", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  network: mysqlEnum("network", ["ethereum", "base", "arbitrum", "polygon", "solana"]).notNull(),
+  publicAddress: varchar("publicAddress", { length: 64 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  monitorTaskUid: varchar("monitorTaskUid", { length: 65 }),
+  monitorEnabled: boolean("monitorEnabled").default(false).notNull(),
+  monitorStatus: varchar("monitorStatus", { length: 32 }).default("off").notNull(),
+  lastHeartbeatAt: timestamp("lastHeartbeatAt"),
+  lastReadAt: timestamp("lastReadAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const historicalDataRuns = mysqlTable("historicalDataRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  symbol: varchar("symbol", { length: 40 }).notNull(),
+  fromDate: varchar("fromDate", { length: 10 }).notNull(),
+  toDate: varchar("toDate", { length: 10 }).notNull(),
+  timespan: varchar("timespan", { length: 16 }).notNull(),
+  adjusted: boolean("adjusted").notNull(),
+  barsCount: int("barsCount").notNull(),
+  provenance: json("provenance").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const historicalDatasets = mysqlTable("historicalDatasets", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  name: varchar("name", { length: 160 }).notNull(),
+  format: mysqlEnum("format", ["csv", "ndjson"]).notNull(),
+  source: varchar("source", { length: 160 }).notNull().default("user-upload"),
+  storageKey: text("storageKey").notNull(),
+  sha256: varchar("sha256", { length: 64 }).notNull(),
+  byteSize: int("byteSize").notNull(),
+  rowCount: int("rowCount").notNull(),
+  symbol: varchar("symbol", { length: 40 }).notNull(),
+  timezone: varchar("timezone", { length: 64 }).notNull(),
+  firstTimestamp: timestamp("firstTimestamp"),
+  lastTimestamp: timestamp("lastTimestamp"),
+  status: mysqlEnum("status", ["uploaded", "validated", "rejected"]).default("uploaded").notNull(),
+  warnings: json("warnings"),
+  errors: json("errors"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const paperAlerts = mysqlTable("paperAlerts", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  warningId: varchar("warningId", { length: 160 }).notNull(),
+  headline: text("headline").notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(),
+  confidence: int("confidence").notNull(),
+  reason: text("reason").notNull(),
+  triggeredAt: timestamp("triggeredAt").defaultNow().notNull(),
+  acknowledged: boolean("acknowledged").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const opportunityRecords = mysqlTable("opportunityRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  externalKey: varchar("externalKey", { length: 64 }).notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  url: text("url").notNull(),
+  source: varchar("source", { length: 180 }).notNull(),
+  verification: text("verification").notNull(),
+  status: mysqlEnum("status", ["new", "reviewing", "verified", "dismissed"]).default("new").notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const opportunityHistory = mysqlTable("opportunityHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  opportunityId: int("opportunityId").notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  payload: json("payload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const auditEvents = mysqlTable("auditEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  entityType: varchar("entityType", { length: 64 }).notNull(),
+  entityId: int("entityId"),
+  payload: json("payload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
