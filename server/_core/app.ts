@@ -13,7 +13,7 @@ import { appendAuditEventToDb, getWalletConnectionByTaskUid, markWalletHeartbeat
 import { runWatchdog } from "../watchdog";
 import { fetchReadOnlyWalletPortfolio } from "../wallet";
 import { sdk } from "./sdk";
-import { serveStatic, setupVite } from "./vite";
+import { serveStatic } from "./static";
 
 export async function createApp(options: { server?: Server; serveFrontend?: boolean } = {}) {
   const app = express();
@@ -75,6 +75,8 @@ export async function createApp(options: { server?: Server; serveFrontend?: bool
 
   if (process.env.NODE_ENV === "development") {
     if (!options.server) throw new Error("A server is required to configure the Vite development middleware.");
+    // Dynamic import so production / Vercel never loads vite → rollup native bindings
+    const { setupVite } = await import("./vite");
     await setupVite(app, options.server);
   } else if (options.serveFrontend !== false) {
     serveStatic(app);
