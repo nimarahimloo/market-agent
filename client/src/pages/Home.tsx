@@ -79,8 +79,9 @@ function latestRadarUpdate(items: Array<{ retrievedAt: string }> | undefined) {
 export default function Home() {
   const { user, loading } = useAuth();
   const [location] = useLocation();
+  const [loginError, setLoginError] = useState<string | null>(null);
   if (loading) return <div className="loading-state"><Sparkles className="animate-pulse" /> Initializing private command center…</div>;
-  if (!user) return <div className="auth-gate"><div className="auth-mark"><LockKeyhole /></div><p className="eyebrow">PRIVATE RESEARCH ENVIRONMENT</p><h1>Market intelligence, with an audit trail.</h1><p>Sign in to access your watchlists, agent workspaces, paper-trading experiments, and risk controls.</p><Button onClick={() => startLogin()} size="lg">Sign in securely <ChevronRight /></Button><span className="auth-note"><ShieldCheck /> Live trading is disabled by default</span></div>;
+  if (!user) return <div className="auth-gate"><div className="auth-mark"><LockKeyhole /></div><p className="eyebrow">PRIVATE RESEARCH ENVIRONMENT</p><h1>Market intelligence, with an audit trail.</h1><p>Sign in to access your watchlists, agent workspaces, paper-trading experiments, and risk controls.</p><Button onClick={() => setLoginError(startLogin())} size="lg">Sign in securely <ChevronRight /></Button>{loginError ? <p role="alert" className="text-sm text-destructive">{loginError}</p> : null}<span className="auth-note"><ShieldCheck /> Live trading is disabled by default</span></div>;
 
   if (location !== "/") return <ModulePage location={location} />;
 

@@ -67,6 +67,7 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -89,12 +90,17 @@ export default function DashboardLayout({
             </p>
           </div>
           <Button
-            onClick={() => startLogin()}
+            onClick={() => setLoginError(startLogin())}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
             Sign in
           </Button>
+          {loginError ? (
+            <p role="alert" className="text-sm text-destructive text-center">
+              {loginError}
+            </p>
+          ) : null}
         </div>
       </div>
     );
