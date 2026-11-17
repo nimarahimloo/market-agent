@@ -22,13 +22,14 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { trpc } from "@/lib/trpc";
 import { Activity, BarChart3, BookOpenCheck, BriefcaseBusiness, Coins, LayoutDashboard, LogOut, PanelLeft, Radar, ShieldCheck, SlidersHorizontal, Sparkles, WalletCards } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 const menuGroups = [
   { label: "Monitor", items: [
@@ -66,12 +67,30 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const { loading, user } = useAuth();
+  const { loading, user, refresh } = useAuth();
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: async () => {
+      setLoginError(null);
+      await refresh();
+    },
+    onError: (err) => {
+      setLoginError(err.message || "Login failed");
+    },
+  });
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
+
+  const handleLogin = (e: FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    loginMutation.mutate({ username, password });
+  };
 
   if (loading) {
     return <DashboardLayoutSkeleton />
@@ -80,28 +99,55 @@ export default function DashboardLayout({
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
+        <form
+          onSubmit={handleLogin}
+          className="flex flex-col items-center gap-6 p-8 max-w-sm w-full"
+        >
+          <div className="flex flex-col items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
+              Sign in
             </h1>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+            <p className="text-sm text-muted-foreground text-center">
+              Enter username and password to continue.
             </p>
           </div>
+          <div className="w-full space-y-3">
+            <Input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+              disabled={loginMutation.isPending}
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              disabled={loginMutation.isPending}
+            />
+          </div>
           <Button
-            onClick={() => setLoginError(startLogin())}
+            type="submit"
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
+            disabled={loginMutation.isPending}
           >
-            Sign in
+            {loginMutation.isPending ? "Signing in…" : "Sign in"}
           </Button>
           {loginError ? (
             <p role="alert" className="text-sm text-destructive text-center">
               {loginError}
             </p>
           ) : null}
-        </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Default: <code className="text-xs">admin</code> / <code className="text-xs">admin123</code>
+          </p>
+        </form>
       </div>
     );
   }
