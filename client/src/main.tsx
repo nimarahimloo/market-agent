@@ -18,7 +18,8 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  startLogin();
+  const loginError = startLogin();
+  if (loginError) console.error("[Auth] Sign-in unavailable:", loginError);
 };
 
 queryClient.getQueryCache().subscribe(event => {
