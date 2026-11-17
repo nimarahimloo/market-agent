@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
 import { trpc } from "@/lib/trpc";
+import { COOKIE_NAME } from "@shared/const";
 import { Activity, BarChart3, BookOpenCheck, BriefcaseBusiness, Coins, LayoutDashboard, LogOut, PanelLeft, Radar, ShieldCheck, SlidersHorizontal, Sparkles, WalletCards } from "lucide-react";
 import { CSSProperties, FormEvent, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -73,8 +74,14 @@ export default function DashboardLayout({
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       setLoginError(null);
+      try {
+        const token = (data as { sessionToken?: string } | undefined)?.sessionToken;
+        if (token) {
+          sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${token}`);
+        }
+      } catch {}
       await refresh();
     },
     onError: (err) => {
@@ -145,7 +152,7 @@ export default function DashboardLayout({
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground text-center">
-            Default: <code className="text-xs">admin</code> / <code className="text-xs">admin123</code>
+            Username: <code className="text-xs">admin</code> — password from LOCAL_AUTH_PASSWORD env
           </p>
         </form>
       </div>
@@ -194,25 +201,21 @@ function DashboardLayoutContent({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-
       const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
       const newWidth = e.clientX - sidebarLeft;
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setSidebarWidth(newWidth);
       }
     };
-
     const handleMouseUp = () => {
       setIsResizing(false);
     };
-
     if (isResizing) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
     }
-
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
@@ -224,11 +227,7 @@ function DashboardLayoutContent({
   return (
     <>
       <div className="relative" ref={sidebarRef}>
-        <Sidebar
-          collapsible="icon"
-          className="border-r-0"
-          disableTransition={isResizing}
-        >
+        <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
           <SidebarHeader className="h-16 justify-center">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
               <button
@@ -240,14 +239,11 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Market Command
-                  </span>
+                  <span className="font-semibold tracking-tight truncate">Market Command</span>
                 </div>
               ) : null}
             </div>
           </SidebarHeader>
-
           <SidebarContent className="gap-0">
             {menuGroups.map(group => (
               <SidebarGroup key={group.label} className="py-1">
@@ -275,7 +271,6 @@ function DashboardLayoutContent({
               </SidebarGroup>
             ))}
           </SidebarContent>
-
           <SidebarFooter className="p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -286,20 +281,13 @@ function DashboardLayoutContent({
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
-                      {user?.name || "-"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.email || "-"}
-                    </p>
+                    <p className="text-sm font-medium truncate leading-none">{user?.name || "-"}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-1.5">{user?.email || "-"}</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>
                 </DropdownMenuItem>
@@ -309,14 +297,10 @@ function DashboardLayoutContent({
         </Sidebar>
         <div
           className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
-          onMouseDown={() => {
-            if (isCollapsed) return;
-            setIsResizing(true);
-          }}
+          onMouseDown={() => { if (isCollapsed) return; setIsResizing(true); }}
           style={{ zIndex: 50 }}
         />
       </div>
-
       <SidebarInset>
         {isMobile && (
           <>
