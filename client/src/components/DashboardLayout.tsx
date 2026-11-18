@@ -96,7 +96,18 @@ export default function DashboardLayout({
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     setLoginError(null);
-    loginMutation.mutate({ username, password });
+
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setLoginError("Username is required");
+      return;
+    }
+    if (!password) {
+      setLoginError("Password is required");
+      return;
+    }
+
+    loginMutation.mutate({ username: trimmedUsername, password });
   };
 
   if (loading) {
@@ -108,6 +119,7 @@ export default function DashboardLayout({
       <div className="flex items-center justify-center min-h-screen">
         <form
           onSubmit={handleLogin}
+          noValidate
           className="flex flex-col items-center gap-6 p-8 max-w-sm w-full"
         >
           <div className="flex flex-col items-center gap-3">
@@ -125,7 +137,6 @@ export default function DashboardLayout({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
-              required
               disabled={loginMutation.isPending}
             />
             <Input
@@ -134,7 +145,6 @@ export default function DashboardLayout({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              required
               disabled={loginMutation.isPending}
             />
           </div>
@@ -152,7 +162,7 @@ export default function DashboardLayout({
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground text-center">
-            Username: <code className="text-xs">admin</code> — password from LOCAL_AUTH_PASSWORD env
+            Username: <code className="text-xs">admin</code> — password from LOCAL_AUTH_PASSWORD env (default: admin123)
           </p>
         </form>
       </div>
