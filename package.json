@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
-    "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/_core/app.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/api-handler.js",
+    "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/_core/app.ts --platform=node --bundle --format=esm --outfile=dist/api-handler.js --external:mysql2 --external:vite --external:lightningcss --external:lightningcss-linux-x64-gnu --external:@tailwindcss/vite --external:../../vite.config --external:./vite --define:process.env.NODE_ENV=\"production\"",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
@@ -114,6 +114,10 @@
     },
     "overrides": {
       "tailwindcss>nanoid": "3.3.7"
+    },
+    "supportedArchitectures": {
+      "os": ["current", "linux"],
+      "cpu": ["current", "x64"]
     }
   }
 }
