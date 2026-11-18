@@ -23,14 +23,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
-import { trpc } from "@/lib/trpc";
-import { COOKIE_NAME } from "@shared/const";
 import { Activity, BarChart3, BookOpenCheck, BriefcaseBusiness, Coins, LayoutDashboard, LogOut, PanelLeft, Radar, ShieldCheck, SlidersHorizontal, Sparkles, WalletCards } from "lucide-react";
-import { CSSProperties, FormEvent, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 
 const menuGroups = [
   { label: "Monitor", items: [
@@ -68,105 +64,14 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const { loading, user, refresh } = useAuth();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async (data) => {
-      setLoginError(null);
-      try {
-        const token = (data as { sessionToken?: string } | undefined)?.sessionToken;
-        if (token) {
-          sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${token}`);
-        }
-      } catch {}
-      await refresh();
-    },
-    onError: (err) => {
-      setLoginError(err.message || "Login failed");
-    },
-  });
+  const { loading } = useAuth();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  const handleLogin = (e: FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-
-    const trimmedUsername = username.trim();
-    if (!trimmedUsername) {
-      setLoginError("Username is required");
-      return;
-    }
-    if (!password) {
-      setLoginError("Password is required");
-      return;
-    }
-
-    loginMutation.mutate({ username: trimmedUsername, password });
-  };
-
   if (loading) {
     return <DashboardLayoutSkeleton />
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <form
-          onSubmit={handleLogin}
-          noValidate
-          className="flex flex-col items-center gap-6 p-8 max-w-sm w-full"
-        >
-          <div className="flex flex-col items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in
-            </h1>
-            <p className="text-sm text-muted-foreground text-center">
-              Enter username and password to continue.
-            </p>
-          </div>
-          <div className="w-full space-y-3">
-            <Input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              disabled={loginMutation.isPending}
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              disabled={loginMutation.isPending}
-            />
-          </div>
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-            disabled={loginMutation.isPending}
-          >
-            {loginMutation.isPending ? "Signing in…" : "Sign in"}
-          </Button>
-          {loginError ? (
-            <p role="alert" className="text-sm text-destructive text-center">
-              {loginError}
-            </p>
-          ) : null}
-          <p className="text-xs text-muted-foreground text-center">
-            Username: <code className="text-xs">admin</code> — Password: <code className="text-xs">admin123</code>
-          </p>
-        </form>
-      </div>
-    );
   }
 
   return (
@@ -287,12 +192,12 @@ function DashboardLayoutContent({
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
                     <AvatarFallback className="text-xs font-medium">
-                      {user?.name?.charAt(0).toUpperCase()}
+                      {(user?.name ?? "A").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">{user?.name || "-"}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">{user?.email || "-"}</p>
+                    <p className="text-sm font-medium truncate leading-none">{user?.name || "Admin"}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-1.5">{user?.email || "admin@local"}</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
