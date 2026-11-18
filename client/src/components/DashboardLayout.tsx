@@ -162,7 +162,7 @@ export default function DashboardLayout({
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground text-center">
-            Username: <code className="text-xs">admin</code> — password from LOCAL_AUTH_PASSWORD env (default: admin123)
+            Username: <code className="text-xs">admin</code> — Password: <code className="text-xs">admin123</code>
           </p>
         </form>
       </div>
