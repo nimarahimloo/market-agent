@@ -22,10 +22,10 @@ import { createHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 
-// Simple local credentials — override with env vars if needed
-const LOCAL_USERNAME = process.env.LOCAL_AUTH_USERNAME ?? "admin";
-const LOCAL_PASSWORD = process.env.LOCAL_AUTH_PASSWORD ?? "admin123";
-const LOCAL_OPEN_ID = process.env.LOCAL_AUTH_OPEN_ID ?? "local-admin";
+// Hardcoded local credentials (works even when no env vars are set on Vercel)
+const LOCAL_USERNAME = "admin";
+const LOCAL_PASSWORD = "admin123";
+const LOCAL_OPEN_ID = "local-admin";
 
 const radarEventInput = z.object({ provider: z.enum(["gdelt", "google-news", "bbc-news", "stale-cache"]).default("gdelt"), id: z.string().max(160), title: z.string().min(1).max(500), url: z.string().url(), publishedAt: z.string(), retrievedAt: z.string(), source: z.string(), sourceTier: z.enum(["discovery", "financial-media", "official"]), severity: z.enum(["low", "medium", "high"]), markets: z.array(z.string()).max(12), entities: z.array(z.string()).max(24).optional(), summary: z.string().max(2000).optional() });
 const agentRunOptionsInput = z.object({ agentBudget: z.number().int().min(1).max(20).optional(), retryCount: z.number().int().min(0).max(3).optional(), model: z.string().max(120).optional() }).optional();
