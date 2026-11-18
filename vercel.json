@@ -1,6 +1,7 @@
 {
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
+  "installCommand": "pnpm install --frozen-lockfile && pnpm add --save-optional lightningcss-linux-x64-gnu@1.33.0 @tailwindcss/oxide-linux-x64-gnu@4.3.5",
   "rewrites": [
     {
       "source": "/api/:path*",
