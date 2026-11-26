@@ -73,14 +73,14 @@ export async function createApp(options: { server?: Server; serveFrontend?: bool
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
-  // Production / Vercel: never load Vite (and therefore never load lightningcss).
-  // Development only: dynamic import so the production bundle stays free of native CSS tooling.
-  const isDev = process.env.NODE_ENV === "development";
-  if (isDev) {
-    if (!options.server) throw new Error("A server is required to configure the Vite development middleware.");
+  // Vercel API route always passes serveFrontend: false → never load Vite / lightningcss.
+  // Local full server: development uses Vite; production serves static files.
+  if (options.serveFrontend === false) {
+    // API-only handler (Vercel serverless). No frontend middleware.
+  } else if (options.server && process.env.NODE_ENV === "development") {
     const { setupVite } = await import("./vite");
     await setupVite(app, options.server);
-  } else if (options.serveFrontend !== false) {
+  } else {
     serveStatic(app);
   }
 
