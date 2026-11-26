@@ -73,9 +73,11 @@ export async function createApp(options: { server?: Server; serveFrontend?: bool
   });
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
-  if (process.env.NODE_ENV === "development") {
+  // Production / Vercel: never load Vite (and therefore never load lightningcss).
+  // Development only: dynamic import so the production bundle stays free of native CSS tooling.
+  const isDev = process.env.NODE_ENV === "development";
+  if (isDev) {
     if (!options.server) throw new Error("A server is required to configure the Vite development middleware.");
-    // Dynamic import so production / Vercel never loads vite → rollup native bindings
     const { setupVite } = await import("./vite");
     await setupVite(app, options.server);
   } else if (options.serveFrontend !== false) {
